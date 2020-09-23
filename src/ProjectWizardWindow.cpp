@@ -13,10 +13,14 @@ ProjectWizardWindow::ProjectWizardWindow(QWidget *parent) :
 	QDialog{ parent },
 	ui{ new Ui::ProjectWizardWindow },
 	projectDirectory{ QDir::currentPath() },
+	templateDirectory{ QDir(QCoreApplication::applicationDirPath() + QString("/template")) },
 	useQt{ false }
 {
 	ui->setupUi(this);
 	updateDirectoryView();
+
+	std::cout << projectDirectory.absolutePath().toStdString() << '\n';
+	std::cout << templateDirectory.absolutePath().toStdString() << '\n';
 
 	/*Connect up buttons.*/
 	connect(ui->dialogButtons, &QDialogButtonBox::accepted,
@@ -40,6 +44,7 @@ ProjectWizardWindow::~ProjectWizardWindow()
 
 void ProjectWizardWindow::generateFiles()
 {
+	std::cout << "Generating...";
 	if(!createDirectoryStructure())
 		std::cout << "Failed to create project directories.\n";
 	if(!fillDirectoryStructure())
@@ -80,7 +85,7 @@ void ProjectWizardWindow::browse()
 
 bool ProjectWizardWindow::createDirectoryStructure()
 {
-	QDirIterator it{ "template", QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories };
+	QDirIterator it{ templateDirectory.absolutePath(), QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories };
 	while(it.hasNext())
 	{
 		it.next();
@@ -93,22 +98,22 @@ bool ProjectWizardWindow::createDirectoryStructure()
 
 bool ProjectWizardWindow::fillDirectoryStructure()
 {
-	QDirIterator it{ "template", QDir::Files, QDirIterator::Subdirectories };
+	QDirIterator it{ templateDirectory.absolutePath(), QDir::Files, QDirIterator::Subdirectories };
 	while(it.hasNext())
 	{
-		const QString name{ it.next() };
-		QFile inFile{ name };
+		const QString path{ it.next() };
+		QFile inFile{ path };
 		if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		{
-			std::cout << "Could not open template file.\"" << name.toStdString() << "\".\n";
+			std::cout << "Could not open template file.\"" << path.toStdString() << "\".\n";
 			return false;
 		}
-		std::cout << "Opened "<< name.toStdString() << " successfully.\n";
+		std::cout << "Opened "<< path.toStdString() << " successfully.\n";
 		QTextStream istream{ &inFile };
 		QString rawContent{ istream.readAll() };
 		QString processed{ unwrapQt(substituteMeta(rawContent)) };
 		inFile.close();
-		QFile outFile{ projectDirectory.absolutePath() + name.mid(8) };
+		QFile outFile{ projectDirectory.absolutePath() + path.mid(path.indexOf("template") + 8) };
 		if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		{
 			std::cout << "Could not open write file.\n";

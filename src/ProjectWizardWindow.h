@@ -25,6 +25,7 @@ private:
 	QString projectDescription;
 	bool useQt;
 	QDir projectDirectory;
+	const QDir templateDirectory;
 
 	void setProjectDirectory(const QDir& directory);
 
